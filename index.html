@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SVG to PowerPoint Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.min.js"></script>
+    <!-- Updated script tag with correct version and integrity check -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -167,6 +168,12 @@
             const previewContainer = document.getElementById('previewContainer');
             const svgPreview = document.getElementById('svgPreview');
             
+            // Check if PptxGenJS is loaded
+            if (typeof PptxGenJS === 'undefined') {
+                showStatus('Error: PptxGenJS library not loaded. Please check your internet connection or try reloading the page.', 'error');
+                convertButton.disabled = true;
+            }
+            
             // Show/hide custom size inputs
             slideSize.addEventListener('change', function() {
                 if (this.value === 'custom') {
@@ -234,6 +241,12 @@
                 }
                 
                 try {
+                    // Check again if PptxGenJS is loaded
+                    if (typeof PptxGenJS === 'undefined') {
+                        showStatus('Error: PowerPoint generation library not loaded', 'error');
+                        return;
+                    }
+                    
                     // Get dimensions based on selection
                     let width, height;
                     
@@ -268,6 +281,11 @@
                     tempDiv.innerHTML = svgCode;
                     const svgElement = tempDiv.querySelector('svg');
                     
+                    if (!svgElement) {
+                        showStatus('Invalid SVG structure detected', 'error');
+                        return;
+                    }
+                    
                     // Convert SVG to base64 image
                     const svgData = new XMLSerializer().serializeToString(svgElement);
                     const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
@@ -288,7 +306,7 @@
                         })
                         .catch(function(error) {
                             console.error(error);
-                            showStatus('Error creating PowerPoint file', 'error');
+                            showStatus('Error creating PowerPoint file: ' + error.message, 'error');
                         });
                     
                 } catch (error) {

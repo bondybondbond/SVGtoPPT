@@ -68,9 +68,6 @@
         }
         .button-container {
             text-align: center;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
         }
         .status {
             margin-top: 20px;
@@ -89,11 +86,6 @@
         .warning {
             background-color: #fff8e1;
             color: #f57c00;
-        }
-        .option-info {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
         }
         .preview-container {
             margin: 20px 0;
@@ -140,9 +132,6 @@
             background-color: white;
             font-weight: bold;
         }
-        .file-input-container {
-            margin-bottom: 20px;
-        }
         .sample-svgs {
             display: flex;
             flex-wrap: wrap;
@@ -177,7 +166,6 @@
     <div class="container">
         <div class="tabs">
             <div class="tab active" id="pasteTab">Paste SVG</div>
-            <div class="tab" id="uploadTab">Upload SVG File</div>
             <div class="tab" id="sampleTab">Sample SVGs</div>
         </div>
         
@@ -185,13 +173,6 @@
             <div>
                 <label for="svgInput">Paste your SVG code here:</label>
                 <textarea id="svgInput" placeholder="<svg>...</svg>"></textarea>
-            </div>
-        </div>
-        
-        <div id="uploadContent" style="display: none;">
-            <div class="file-input-container">
-                <label for="svgFile">Upload SVG file:</label>
-                <input type="file" id="svgFile" accept=".svg" />
             </div>
         </div>
         
@@ -242,7 +223,6 @@
         </div>
 
         <div class="button-container">
-            <button id="validateButton">Validate SVG</button>
             <button id="convertButton">Convert to PowerPoint</button>
         </div>
         
@@ -263,13 +243,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Elements
             const svgInput = document.getElementById('svgInput');
-            const svgFile = document.getElementById('svgFile');
             const slideSize = document.getElementById('slideSize');
             const customSizeContainer = document.getElementById('customSizeContainer');
             const customWidth = document.getElementById('customWidth');
             const customHeight = document.getElementById('customHeight');
             const convertButton = document.getElementById('convertButton');
-            const validateButton = document.getElementById('validateButton');
             const statusMessage = document.getElementById('statusMessage');
             const previewToggle = document.getElementById('previewToggle');
             const previewContainer = document.getElementById('previewContainer');
@@ -279,10 +257,8 @@
             
             // Tab elements
             const pasteTab = document.getElementById('pasteTab');
-            const uploadTab = document.getElementById('uploadTab');
             const sampleTab = document.getElementById('sampleTab');
             const pasteContent = document.getElementById('pasteContent');
-            const uploadContent = document.getElementById('uploadContent');
             const sampleContent = document.getElementById('sampleContent');
             const sampleOptions = document.querySelectorAll('.sample-svg-option');
             
@@ -345,10 +321,6 @@
                 setActiveTab('paste');
             });
             
-            uploadTab.addEventListener('click', function() {
-                setActiveTab('upload');
-            });
-            
             sampleTab.addEventListener('click', function() {
                 setActiveTab('sample');
             });
@@ -356,23 +328,26 @@
             function setActiveTab(tabName) {
                 // Reset all tabs
                 pasteTab.classList.remove('active');
-                uploadTab.classList.remove('active');
                 sampleTab.classList.remove('active');
                 
                 pasteContent.style.display = 'none';
-                uploadContent.style.display = 'none';
                 sampleContent.style.display = 'none';
                 
                 // Set active tab
                 if (tabName === 'paste') {
                     pasteTab.classList.add('active');
                     pasteContent.style.display = 'block';
-                } else if (tabName === 'upload') {
-                    uploadTab.classList.add('active');
-                    uploadContent.style.display = 'block';
                 } else if (tabName === 'sample') {
                     sampleTab.classList.add('active');
                     sampleContent.style.display = 'block';
+                }
+                
+                // Try to save user preference (but don't worry if it fails)
+                try {
+                    localStorage.setItem('svgToPpt_activeTab', JSON.stringify(tabName));
+                } catch (e) {
+                    // Silently ignore localStorage errors
+                    console.log('Note: Preferences cannot be saved in this environment');
                 }
             }
             
@@ -388,23 +363,12 @@
                 });
             });
             
-            // SVG file upload handling
-            svgFile.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file && file.type === 'image/svg+xml') {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        svgInput.value = e.target.result;
-                        updatePreview();
-                    };
-                    reader.readAsText(file);
-                } else if (file) {
-                    showStatus('Selected file is not a valid SVG file', 'error');
-                }
-            });
-            
-            // Load saved preferences if available
-            loadSavedPreferences();
+            // Try to load saved preferences, but with error handling
+            try {
+                loadSavedPreferences();
+            } catch (e) {
+                console.log('Note: Could not load preferences in this environment');
+            }
             
             // Show/hide custom size inputs
             slideSize.addEventListener('change', function() {
@@ -429,10 +393,14 @@
                     }
                 }
                 
-                // Save user preference
-                savePreference('slideSize', this.value);
-                savePreference('customWidth', customWidth.value);
-                savePreference('customHeight', customHeight.value);
+                // Try to save user preference (but don't worry if it fails)
+                try {
+                    localStorage.setItem('svgToPpt_slideSize', JSON.stringify(this.value));
+                    localStorage.setItem('svgToPpt_customWidth', JSON.stringify(customWidth.value));
+                    localStorage.setItem('svgToPpt_customHeight', JSON.stringify(customHeight.value));
+                } catch (e) {
+                    // Silently ignore localStorage errors
+                }
                 
                 updatePreview();
             });
@@ -442,19 +410,13 @@
                 updatePreview();
             }, 500));
             
-            customWidth.addEventListener('change', function() {
-                savePreference('customWidth', this.value);
-                updatePreview();
-            });
-            
-            customHeight.addEventListener('change', function() {
-                savePreference('customHeight', this.value);
-                updatePreview();
-            });
-            
             previewToggle.addEventListener('change', function() {
                 previewContainer.style.display = this.checked ? 'block' : 'none';
-                savePreference('previewToggle', this.checked);
+                try {
+                    localStorage.setItem('svgToPpt_previewToggle', JSON.stringify(this.checked));
+                } catch (e) {
+                    // Silently ignore localStorage errors
+                }
             });
             
             // Debounce function to prevent too many preview updates
@@ -471,7 +433,6 @@
             
             function sanitizeSVG(svgCode) {
                 // Basic sanitization to prevent XSS
-                // This is a simple implementation - for production, use a dedicated SVG sanitizer library
                 return svgCode
                     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
                     .replace(/on\w+="[^"]*"/g, '') // Remove event handlers
@@ -510,54 +471,6 @@
                     svgPreview.innerHTML = '<p style="text-align: center; color: #999;">SVG preview will appear here</p>';
                 }
             }
-            
-            // Validate SVG button
-            validateButton.addEventListener('click', function() {
-                const svgCode = svgInput.value.trim();
-                
-                if (!svgCode) {
-                    showStatus('Please enter SVG code to validate', 'warning');
-                    return;
-                }
-                
-                if (!svgCode.startsWith('<svg')) {
-                    showStatus('Invalid SVG: Must start with <svg> tag', 'error');
-                    return;
-                }
-                
-                try {
-                    // Parse SVG to check validity
-                    const parser = new DOMParser();
-                    const svgDoc = parser.parseFromString(svgCode, 'image/svg+xml');
-                    
-                    // Check for parsing errors
-                    const parserError = svgDoc.querySelector('parsererror');
-                    if (parserError) {
-                        showStatus('SVG parsing error: ' + parserError.textContent, 'error');
-                        return;
-                    }
-                    
-                    // Check SVG size
-                    const size = new Blob([svgCode]).size;
-                    const sizeKB = (size / 1024).toFixed(2);
-                    
-                    if (size > 5 * 1024 * 1024) {
-                        showStatus(`SVG file is too large (${sizeKB} KB). Maximum recommended size is 5 MB.`, 'warning');
-                        return;
-                    }
-                    
-                    // Check for scripts (security risk)
-                    if (svgCode.includes('<script') || svgCode.match(/on\w+=/)) {
-                        showStatus('Warning: SVG contains scripts or event handlers which will be removed for security', 'warning');
-                        return;
-                    }
-                    
-                    showStatus(`SVG is valid! Size: ${sizeKB} KB`, 'success');
-                    
-                } catch (error) {
-                    showStatus('Error validating SVG: ' + error.message, 'error');
-                }
-            });
             
             // Convert SVG to PowerPoint
             convertButton.addEventListener('click', function() {
@@ -680,19 +593,15 @@
                 }, 8000);
             }
             
-            // Save user preferences to localStorage
-            function savePreference(key, value) {
-                try {
-                    localStorage.setItem('svgToPpt_' + key, JSON.stringify(value));
-                } catch (e) {
-                    // LocalStorage might be disabled or full
-                    console.log('Could not save preference:', e);
-                }
-            }
-            
-            // Load saved preferences
+            // Load saved preferences with error handling for sandbox environments
             function loadSavedPreferences() {
                 try {
+                    // Create a test key to verify localStorage access
+                    localStorage.setItem('svgToPpt_test', 'test');
+                    localStorage.removeItem('svgToPpt_test');
+                    
+                    // If we get here, localStorage is available
+                    
                     // Load slide size preference
                     const savedSlideSize = localStorage.getItem('svgToPpt_slideSize');
                     if (savedSlideSize) {
@@ -720,7 +629,9 @@
                         previewContainer.style.display = previewToggle.checked ? 'block' : 'none';
                     }
                 } catch (e) {
-                    console.log('Could not load preferences:', e);
+                    // Handle the case where localStorage is not available
+                    console.log('Storage not available in this environment:', e.message);
+                    // Using memory fallback is unnecessary for this simple app
                 }
             }
             

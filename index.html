@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to PowerPoint Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #0066cc;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .button-container {
+            text-align: center;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #e6f7e6;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .option-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .preview-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            overflow: auto;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>SVG to PowerPoint Converter</h1>
+    
+    <div class="container">
+        <div>
+            <label for="svgInput">Paste your SVG code here:</label>
+            <textarea id="svgInput" placeholder="<svg>...</svg>"></textarea>
+        </div>
+        
+        <div>
+            <label for="slideSize">Select slide dimensions:</label>
+            <select id="slideSize">
+                <option value="standard">Standard (4:3) - 25.4 cm × 19.05 cm</option>
+                <option value="widescreen16_9" selected>Widescreen (16:9) - 33.87 cm × 19.05 cm</option>
+                <option value="widescreen16_10">Widescreen (16:10) - 30.48 cm × 19.05 cm</option>
+                <option value="a4">A4 - 29.7 cm × 21 cm</option>
+                <option value="custom">Custom dimensions</option>
+            </select>
+            <div id="customSizeContainer" style="display: none;">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div style="flex: 1;">
+                        <label for="customWidth">Width (cm):</label>
+                        <input type="number" id="customWidth" min="1" step="0.1" value="33.87" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="customHeight">Height (cm):</label>
+                        <input type="number" id="customHeight" min="1" step="0.1" value="19.05" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <label for="previewToggle">Preview:</label>
+            <input type="checkbox" id="previewToggle" checked>
+            <div id="previewContainer" class="preview-container">
+                <div id="svgPreview" style="display: flex; justify-content: center;"></div>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button id="convertButton">Convert to PowerPoint</button>
+        </div>
+        
+        <div id="statusMessage" class="status" style="display: none;"></div>
+    </div>
+
+    <footer>
+        <p>This tool converts SVG graphics to PowerPoint slides. The output is a .pptx file that can be edited in Microsoft PowerPoint.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const svgInput = document.getElementById('svgInput');
+            const slideSize = document.getElementById('slideSize');
+            const customSizeContainer = document.getElementById('customSizeContainer');
+            const customWidth = document.getElementById('customWidth');
+            const customHeight = document.getElementById('customHeight');
+            const convertButton = document.getElementById('convertButton');
+            const statusMessage = document.getElementById('statusMessage');
+            const previewToggle = document.getElementById('previewToggle');
+            const previewContainer = document.getElementById('previewContainer');
+            const svgPreview = document.getElementById('svgPreview');
+            
+            // Show/hide custom size inputs
+            slideSize.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customSizeContainer.style.display = 'block';
+                } else {
+                    customSizeContainer.style.display = 'none';
+                    
+                    // Set default values based on selection
+                    if (this.value === 'standard') {
+                        customWidth.value = 25.4;
+                        customHeight.value = 19.05;
+                    } else if (this.value === 'widescreen16_9') {
+                        customWidth.value = 33.87;
+                        customHeight.value = 19.05;
+                    } else if (this.value === 'widescreen16_10') {
+                        customWidth.value = 30.48;
+                        customHeight.value = 19.05;
+                    } else if (this.value === 'a4') {
+                        customWidth.value = 29.7;
+                        customHeight.value = 21;
+                    }
+                }
+                updatePreview();
+            });
+            
+            // Update preview when SVG input changes
+            svgInput.addEventListener('input', function() {
+                updatePreview();
+            });
+            
+            previewToggle.addEventListener('change', function() {
+                previewContainer.style.display = this.checked ? 'block' : 'none';
+            });
+            
+            function updatePreview() {
+                const svgCode = svgInput.value.trim();
+                if (svgCode && svgCode.startsWith('<svg')) {
+                    svgPreview.innerHTML = svgCode;
+                    
+                    // Adjust SVG size to fit preview
+                    const svg = svgPreview.querySelector('svg');
+                    if (svg) {
+                        // Make SVG responsive
+                        svg.setAttribute('width', '100%');
+                        svg.setAttribute('height', 'auto');
+                        svg.style.maxHeight = '300px';
+                        
+                        // Set aspect ratio based on selected slide dimensions
+                        let width = parseFloat(customWidth.value);
+                        let height = parseFloat(customHeight.value);
+                        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                    }
+                } else {
+                    svgPreview.innerHTML = '<p style="text-align: center; color: #999;">SVG preview will appear here</p>';
+                }
+            }
+            
+            convertButton.addEventListener('click', function() {
+                const svgCode = svgInput.value.trim();
+                
+                if (!svgCode || !svgCode.startsWith('<svg')) {
+                    showStatus('Please enter valid SVG code', 'error');
+                    return;
+                }
+                
+                try {
+                    // Get dimensions based on selection
+                    let width, height;
+                    
+                    width = parseFloat(customWidth.value);
+                    height = parseFloat(customHeight.value);
+                    
+                    if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+                        showStatus('Please enter valid dimensions', 'error');
+                        return;
+                    }
+                    
+                    // Convert cm to inches (required by pptxgenjs)
+                    const widthInches = width / 2.54;
+                    const heightInches = height / 2.54;
+                    
+                    // Create PowerPoint
+                    const pptx = new PptxGenJS();
+                    
+                    // Set slide size
+                    pptx.defineLayout({
+                        name: 'custom',
+                        width: widthInches,
+                        height: heightInches
+                    });
+                    pptx.layout = 'custom';
+                    
+                    // Add a slide
+                    const slide = pptx.addSlide();
+                    
+                    // Create temp element to parse SVG dimensions
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = svgCode;
+                    const svgElement = tempDiv.querySelector('svg');
+                    
+                    // Convert SVG to base64 image
+                    const svgData = new XMLSerializer().serializeToString(svgElement);
+                    const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+                    
+                    // Add SVG to slide (full slide)
+                    slide.addImage({
+                        data: svgBase64,
+                        x: 0,
+                        y: 0,
+                        w: widthInches,
+                        h: heightInches
+                    });
+                    
+                    // Save the PowerPoint file
+                    pptx.writeFile({ fileName: 'svg-slide.pptx' })
+                        .then(function() {
+                            showStatus('PowerPoint file created successfully!', 'success');
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            showStatus('Error creating PowerPoint file', 'error');
+                        });
+                    
+                } catch (error) {
+                    console.error(error);
+                    showStatus('Error: ' + error.message, 'error');
+                }
+            });
+            
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = 'status ' + type;
+                statusMessage.style.display = 'block';
+                
+                // Hide status after 5 seconds
+                setTimeout(function() {
+                    statusMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Initialize preview container
+            updatePreview();
+        });
+    </script>
+</body>
+</html>

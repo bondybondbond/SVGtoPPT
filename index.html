@@ -3,46 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SVG to PowerPoint Converter</title>
-    <!-- Add integrity hash to ensure secure loading -->
+    <title>Enhanced SVG to PowerPoint Converter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" integrity="sha512-X9+SPQovcsiOYthV3YFMt7R/Z5UpF4cCHv2tb3pYJS9CnMIRxOGzgZNyKZCdNJTFkfnzBYeN9QiKnZf1OYCXJg==" crossorigin="anonymous"></script>
     <style>
+        :root {
+            --primary: #0066cc;
+            --primary-dark: #0055aa;
+            --light-bg: #f8f8f8;
+            --border: #ddd;
+            --text: #333;
+            --success: #2e7d32;
+            --success-bg: #e6f7e6;
+            --error: #c62828;
+            --error-bg: #ffebee;
+            --warning: #f57c00;
+            --warning-bg: #fff8e1;
+        }
+        
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            color: #333;
+            color: var(--text);
+            background-color: #f5f5f5;
         }
+        
         h1 {
-            color: #0066cc;
+            color: var(--primary);
             text-align: center;
             margin-bottom: 20px;
         }
+        
         .container {
-            background-color: #f8f8f8;
+            background-color: white;
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+        
+        .step-container {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        h2 {
+            margin-top: 0;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+        }
+        
+        h2:before {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            margin-right: 10px;
+            line-height: 24px;
+            font-size: 14px;
+        }
+        
+        .step-1 h2:before { content: '1'; }
+        .step-2 h2:before { content: '2'; }
+        .step-3 h2:before { content: '3'; }
+        .step-4 h2:before { content: '4'; }
+        
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
         }
+        
         textarea {
             width: 100%;
-            height: 200px;
+            height: 150px;
             padding: 12px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
             border-radius: 4px;
             resize: vertical;
             font-family: monospace;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background-color: white;
+            margin-bottom: 15px;
+        }
+        
         button {
-            background-color: #0066cc;
+            background-color: var(--primary);
             color: white;
             border: none;
             padding: 12px 20px;
@@ -51,17 +113,21 @@
             font-size: 16px;
             margin-bottom: 15px;
             width: 100%;
+            transition: background-color 0.3s;
         }
+        
         button:hover {
-            background-color: #0055aa;
+            background-color: var(--primary-dark);
         }
+        
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
+        
         .preview-container {
             margin: 20px 0;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
             padding: 10px;
             background-color: white;
             border-radius: 4px;
@@ -69,57 +135,145 @@
             min-height: 150px;
             max-height: 300px;
         }
+        
         .status {
             margin-top: 15px;
             padding: 10px;
             border-radius: 4px;
             text-align: center;
+            transition: all 0.3s ease;
         }
-        .success { background-color: #e6f7e6; color: #2e7d32; }
-        .error { background-color: #ffebee; color: #c62828; }
-        .warning { background-color: #fff8e1; color: #f57c00; }
+        
+        .success { background-color: var(--success-bg); color: var(--success); }
+        .error { background-color: var(--error-bg); color: var(--error); }
+        .warning { background-color: var(--warning-bg); color: var(--warning); }
+        
+        .sample-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
         
         .sample-button {
             background-color: #f0f0f0;
-            color: #333;
+            color: var(--text);
             padding: 8px 15px;
-            margin-right: 10px;
-            margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             cursor: pointer;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
         }
+        
         .sample-button:hover {
             background-color: #e0e0e0;
         }
+        
         .library-status {
             margin-bottom: 15px;
             font-size: 14px;
             color: #666;
-            padding: 5px 10px;
+            padding: 10px;
             background-color: #f0f0f0;
             border-radius: 4px;
             display: flex;
             align-items: center;
         }
+        
         .loading-dot {
             height: 10px;
             width: 10px;
-            background-color: #0066cc;
+            background-color: var(--primary);
             border-radius: 50%;
             margin-right: 10px;
             display: inline-block;
             animation: pulse 1.5s infinite;
         }
+        
         @keyframes pulse {
             0% { opacity: 0.3; }
             50% { opacity: 1; }
             100% { opacity: 0.3; }
         }
+        
+        .resolution-radio {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .resolution-option {
+            flex: 1;
+            min-width: 130px;
+        }
+        
+        .resolution-option input[type="radio"] {
+            display: none;
+        }
+        
+        .resolution-option label {
+            display: block;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .resolution-option input[type="radio"]:checked + label {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .resolution-option label:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .resolution-option input[type="radio"]:checked + label:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .padding-control {
+            margin-top: 15px;
+        }
+        
+        .padding-slider {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .padding-value {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .preview-frame {
+            border: 1px dashed #ccc;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        /* Responsive design adjustments */
+        @media (max-width: 600px) {
+            .sample-buttons {
+                flex-direction: column;
+            }
+            
+            .resolution-option {
+                min-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>SVG to PowerPoint Converter</h1>
+    <h1>Enhanced SVG to PowerPoint Converter</h1>
     
     <div class="container">
         <div id="libraryStatus" class="library-status">
@@ -127,27 +281,58 @@
             <span id="libraryStatusText">Checking PowerPoint library...</span>
         </div>
         
-        <h2>Step 1: Choose an SVG</h2>
-        <div style="margin-bottom: 15px;">
-            <button class="sample-button" id="basicShapes">Sample: Basic Shapes</button>
-            <button class="sample-button" id="simpleChart">Sample: Chart</button>
-            <button class="sample-button" id="flowchart">Sample: Flowchart</button>
+        <div class="step-container step-1">
+            <h2>Choose an SVG</h2>
+            <div class="sample-buttons">
+                <button class="sample-button" id="basicShapes">Basic Shapes</button>
+                <button class="sample-button" id="simpleChart">Bar Chart</button>
+                <button class="sample-button" id="flowchart">Flowchart</button>
+                <button class="sample-button" id="comparisonChart">Comparison Chart</button>
+            </div>
+            
+            <div>
+                <label for="svgInput">SVG Code:</label>
+                <textarea id="svgInput" placeholder="<svg>...</svg>"></textarea>
+            </div>
         </div>
         
-        <div>
-            <label for="svgInput">SVG Code:</label>
-            <textarea id="svgInput" placeholder="<svg>...</svg>"></textarea>
+        <div class="step-container step-2">
+            <h2>Select Slide Resolution</h2>
+            <div class="resolution-radio">
+                <div class="resolution-option">
+                    <input type="radio" id="resolution-16-9" name="resolution" value="LAYOUT_16x9" checked>
+                    <label for="resolution-16-9">16:9 Widescreen<br>(1920×1080)</label>
+                </div>
+                <div class="resolution-option">
+                    <input type="radio" id="resolution-4-3" name="resolution" value="LAYOUT_4x3">
+                    <label for="resolution-4-3">4:3 Standard<br>(1024×768)</label>
+                </div>
+                <div class="resolution-option">
+                    <input type="radio" id="resolution-16-10" name="resolution" value="LAYOUT_16x10">
+                    <label for="resolution-16-10">16:10<br>(1920×1200)</label>
+                </div>
+            </div>
+            
+            <div class="padding-control">
+                <label for="padding-slider">Padding: <span id="padding-value">5%</span></label>
+                <input type="range" id="padding-slider" class="padding-slider" min="0" max="20" value="5">
+            </div>
         </div>
         
-        <h2>Step 2: Preview</h2>
-        <div id="previewContainer" class="preview-container">
-            <div id="svgPreview" style="display: flex; justify-content: center;"></div>
+        <div class="step-container step-3">
+            <h2>Preview</h2>
+            <div id="preview-container" class="preview-container">
+                <div id="preview-frame" class="preview-frame">
+                    <div id="svgPreview" style="display: flex; justify-content: center;"></div>
+                </div>
+            </div>
         </div>
         
-        <h2>Step 3: Convert</h2>
-        <button id="convertButton" disabled>Convert to PowerPoint</button>
-        
-        <div id="statusMessage" class="status" style="display: none;"></div>
+        <div class="step-container step-4">
+            <h2>Convert to PowerPoint</h2>
+            <button id="convertButton" disabled>Convert and Download</button>
+            <div id="statusMessage" class="status" style="display: none;"></div>
+        </div>
     </div>
 
     <script>
@@ -160,13 +345,29 @@
             const convertButton = document.getElementById('convertButton');
             const statusMessage = document.getElementById('statusMessage');
             const svgPreview = document.getElementById('svgPreview');
+            const previewFrame = document.getElementById('preview-frame');
             const libraryStatus = document.getElementById('libraryStatus');
             const libraryStatusText = document.getElementById('libraryStatusText');
+            const paddingSlider = document.getElementById('padding-slider');
+            const paddingValue = document.getElementById('padding-value');
             
             // Sample buttons
             const basicShapesBtn = document.getElementById('basicShapes');
             const simpleChartBtn = document.getElementById('simpleChart');
             const flowchartBtn = document.getElementById('flowchart');
+            const comparisonChartBtn = document.getElementById('comparisonChart');
+            
+            // Get resolution radio buttons
+            const resolutionRadios = document.querySelectorAll('input[name="resolution"]');
+            
+            // Current resolution dimensions (default 16:9)
+            let currentResolution = {
+                width: 1920,
+                height: 1080
+            };
+            
+            // Current padding value
+            let currentPadding = 5; // Default 5%
             
             // Sample SVGs
             const sampleSVGs = {
@@ -201,18 +402,71 @@
                     
                     <polygon points="195,80 200,100 205,80" fill="#666" />
                     <polygon points="195,190 200,210 205,190" fill="#666" />
+                </svg>`,
+                'comparisonChart': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+                    <rect width="800" height="600" fill="#f8f8f8"/>
+                    
+                    <!-- Title -->
+                    <text x="400" y="60" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold">Key Findings: Product A vs. Competitors</text>
+                    
+                    <!-- Left Panel -->
+                    <rect x="70" y="120" width="320" height="400" fill="#f0f7ff" rx="10" ry="10"/>
+                    <text x="230" y="150" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold">Current Assessment</text>
+                    
+                    <text x="90" y="190" font-family="Arial" font-size="14">Analysis of mobile UI compared to top</text>
+                    <text x="90" y="210" font-family="Arial" font-size="14">20 competitors shows</text>
+                    <text x="230" y="250" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="#505050">no significant</text>
+                    <text x="230" y="280" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="#505050">advantage in fairness perception</text>
+                    
+                    <rect x="100" y="320" width="260" height="120" fill="#e6f0ff" rx="5" ry="5"/>
+                    <text x="230" y="350" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="#0066cc">Standout Feature</text>
+                    <text x="140" y="380" font-family="Arial" font-size="14">"Tap field to see how/what to win"</text>
+                    <text x="140" y="400" font-family="Arial" font-size="14">provides transparency that customers</text>
+                    <text x="140" y="420" font-family="Arial" font-size="14">value, but is underutilized.</text>
+                    
+                    <!-- Right Panel - Opportunities -->
+                    <rect x="410" y="120" width="320" height="180" fill="#fff8e6" rx="10" ry="10"/>
+                    <text x="430" y="150" font-family="Arial" font-size="18" font-weight="bold">Priority Opportunities</text>
+                    
+                    <circle cx="430" cy="180" r="5" fill="#f57c00"/>
+                    <text x="445" y="185" font-family="Arial" font-size="14">Highlight RTP and testing certifications</text>
+                    <text x="445" y="205" font-family="Arial" font-size="14">more prominently</text>
+                    
+                    <circle cx="430" cy="235" r="5" fill="#f57c00"/>
+                    <text x="445" y="240" font-family="Arial" font-size="14">Implement top competitor features:</text>
+                    
+                    <rect x="455" y="255" width="180" height="25" rx="12" ry="12" fill="#e0f2f1"/>
+                    <text x="545" y="273" text-anchor="middle" font-family="Arial" font-size="14">Game history</text>
+                    <text x="650" y="273" font-family="Arial" font-size="12">(15/20 rivals)</text>
+                    
+                    <!-- Research Next Steps -->
+                    <rect x="410" y="315" width="320" height="205" fill="#e8f5e9" rx="10" ry="10"/>
+                    <text x="430" y="345" font-family="Arial" font-size="18" font-weight="bold">Research Next Steps</text>
+                    
+                    <circle cx="430" cy="375" r="5" fill="#2e7d32"/>
+                    <text x="445" y="380" font-family="Arial" font-size="14">Analyze demographics of players rating</text>
+                    <text x="445" y="400" font-family="Arial" font-size="14">high NPS – identify potential brand</text>
+                    <text x="445" y="420" font-family="Arial" font-size="14">loyalty effects</text>
+                    
+                    <circle cx="430" cy="450" r="5" fill="#2e7d32"/>
+                    <text x="445" y="455" font-family="Arial" font-size="14">Measure usage metrics for "tap field to</text>
+                    <text x="445" y="475" font-family="Arial" font-size="14">see how/what to win" feature</text>
+                    
+                    <!-- Page Number -->
+                    <text x="770" y="580" text-anchor="end" font-family="Arial" font-size="12">4</text>
+                    <text x="40" y="580" font-family="Arial" font-size="12">Competitive Intelligence Analysis</text>
                 </svg>`
             };
+            
+            // Update padding display
+            paddingValue.textContent = currentPadding + '%';
             
             // Check for PowerPoint library with retries
             checkLibraryWithRetry();
             
             function checkLibraryWithRetry(retries = 5, delay = 1000) {
-                console.log('Checking for PptxGenJS library...');
-                
                 // Check if library is available
                 if (typeof PptxGenJS !== 'undefined') {
-                    console.log('PptxGenJS library found');
                     pptxLibraryLoaded = true;
                     libraryStatusText.textContent = 'PowerPoint library loaded successfully!';
                     libraryStatus.style.backgroundColor = '#e6f7e6';
@@ -225,14 +479,12 @@
                 retries--;
                 
                 if (retries <= 0) {
-                    console.log('Failed to load PptxGenJS after multiple attempts');
                     libraryStatusText.textContent = 'PowerPoint library not loaded. Loading backup...';
                     loadBackupLibrary();
                     return;
                 }
                 
                 libraryStatusText.textContent = `Loading PowerPoint library (${5-retries}/5)...`;
-                console.log(`Will retry in ${delay}ms. Attempts left: ${retries}`);
                 
                 // Retry after delay
                 setTimeout(() => {
@@ -242,15 +494,12 @@
             
             // Load backup library
             function loadBackupLibrary() {
-                console.log('Loading backup PptxGenJS library');
-                
                 // Try alternate CDN
                 const script = document.createElement('script');
                 script.src = 'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
                 script.async = true;
                 
                 script.onload = function() {
-                    console.log('Backup PptxGenJS library loaded successfully');
                     pptxLibraryLoaded = true;
                     libraryStatusText.textContent = 'PowerPoint library loaded successfully!';
                     libraryStatus.style.backgroundColor = '#e6f7e6';
@@ -259,7 +508,6 @@
                 };
                 
                 script.onerror = function() {
-                    console.log('Backup library failed to load');
                     libraryStatusText.textContent = 'Failed to load PowerPoint library. Try refreshing the page.';
                     libraryStatus.style.backgroundColor = '#ffebee';
                     libraryStatus.querySelector('.loading-dot').style.display = 'none';
@@ -268,6 +516,37 @@
                 
                 document.head.appendChild(script);
             }
+            
+            // Setup resolution change handlers
+            resolutionRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    updateResolution(this.value);
+                });
+            });
+            
+            // Update resolution based on selection
+            function updateResolution(layout) {
+                switch(layout) {
+                    case 'LAYOUT_4x3':
+                        currentResolution = { width: 1024, height: 768 };
+                        break;
+                    case 'LAYOUT_16x10':
+                        currentResolution = { width: 1920, height: 1200 };
+                        break;
+                    case 'LAYOUT_16x9':
+                    default:
+                        currentResolution = { width: 1920, height: 1080 };
+                        break;
+                }
+                updatePreview();
+            }
+            
+            // Update padding handler
+            paddingSlider.addEventListener('input', function() {
+                currentPadding = parseInt(this.value);
+                paddingValue.textContent = currentPadding + '%';
+                updatePreview();
+            });
             
             // Sample SVG buttons
             basicShapesBtn.addEventListener('click', function() {
@@ -285,6 +564,11 @@
                 updatePreview();
             });
             
+            comparisonChartBtn.addEventListener('click', function() {
+                svgInput.value = sampleSVGs.comparisonChart;
+                updatePreview();
+            });
+            
             // Update preview when SVG input changes
             svgInput.addEventListener('input', function() {
                 updatePreview();
@@ -292,6 +576,16 @@
             
             function updatePreview() {
                 const svgCode = svgInput.value.trim();
+                
+                // Calculate preview dimensions to maintain aspect ratio
+                const previewWidth = document.getElementById('preview-container').clientWidth - 20; // Accounting for padding
+                const aspectRatio = currentResolution.height / currentResolution.width;
+                const previewHeight = previewWidth * aspectRatio;
+                
+                // Set the preview frame dimensions
+                previewFrame.style.width = previewWidth + 'px';
+                previewFrame.style.height = previewHeight + 'px';
+                
                 if (svgCode && svgCode.startsWith('<svg')) {
                     try {
                         // Basic sanitization
@@ -302,18 +596,29 @@
                         
                         svgPreview.innerHTML = sanitizedSVG;
                         
-                        // Make SVG responsive
+                        // Make SVG responsive and apply padding
                         const svg = svgPreview.querySelector('svg');
                         if (svg) {
-                            svg.setAttribute('width', '100%');
-                            svg.setAttribute('height', 'auto');
-                            svg.style.maxHeight = '250px';
+                            // Calculate padded dimensions
+                            const paddingFactor = currentPadding / 100;
+                            const paddedWidth = previewWidth * (1 - 2 * paddingFactor);
+                            const paddedHeight = previewHeight * (1 - 2 * paddingFactor);
+                            
+                            // Center SVG and apply padding
+                            svg.style.position = 'absolute';
+                            svg.style.top = (previewHeight * paddingFactor) + 'px';
+                            svg.style.left = (previewWidth * paddingFactor) + 'px';
+                            svg.style.width = paddedWidth + 'px';
+                            svg.style.height = paddedHeight + 'px';
+                            
+                            // Maintain original aspect ratio while fitting in padded space
+                            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
                         }
                     } catch (error) {
                         svgPreview.innerHTML = `<p style="color: red;">Error previewing SVG: ${error.message}</p>`;
                     }
                 } else {
-                    svgPreview.innerHTML = '<p style="text-align: center; color: #999;">SVG preview will appear here</p>';
+                    svgPreview.innerHTML = '<p style="text-align: center; color: #999; padding-top: ' + (previewHeight/2-10) + 'px;">SVG preview will appear here</p>';
                 }
             }
             
@@ -333,13 +638,14 @@
                 
                 showStatus('Converting... Please wait', 'warning');
                 
+                // Get selected resolution
+                let selectedLayout = document.querySelector('input[name="resolution"]:checked').value;
+                
                 // Create a new instance of PptxGenJS
                 let pptx;
                 try {
                     pptx = new PptxGenJS();
-                    console.log('PptxGenJS instance created successfully');
                 } catch (e) {
-                    console.error('Error creating PptxGenJS instance:', e);
                     showStatus('Error initializing PowerPoint generator: ' + e.message, 'error');
                     return;
                 }
@@ -351,18 +657,15 @@
                         .replace(/on\w+="[^"]*"/g, '')
                         .replace(/on\w+='[^']*'/g, '');
                     
-                    // Create standard widescreen slide
+                    // Set slide layout
                     try {
-                        pptx.layout = 'LAYOUT_16x9';
-                        console.log('Set slide layout to 16:9');
+                        pptx.layout = selectedLayout;
                     } catch (e) {
-                        console.error('Error setting slide layout:', e);
                         // Continue anyway with default layout
                     }
                     
                     // Add a slide
                     const slide = pptx.addSlide();
-                    console.log('Slide added');
                     
                     // Create temp element to parse SVG
                     const tempDiv = document.createElement('div');
@@ -376,7 +679,6 @@
                     
                     // Convert SVG to base64
                     const svgData = new XMLSerializer().serializeToString(svgElement);
-                    console.log('SVG serialized successfully');
                     
                     // Unicode handling - safer approach
                     const svgBlob = new Blob([svgData], {type: 'image/svg+xml'});
@@ -384,32 +686,30 @@
                     
                     reader.onload = function(e) {
                         const svgBase64 = e.target.result;
-                        console.log('SVG converted to base64');
                         
-                        // Add SVG to slide
+                        // Calculate padding in PowerPoint units (0-100%)
+                        const paddingPercent = currentPadding / 100;
+                        
+                        // Add SVG to slide with proper padding
                         try {
                             slide.addImage({
                                 data: svgBase64,
-                                x: 0,
-                                y: 0,
-                                w: '100%',
-                                h: '100%'
+                                x: `${paddingPercent * 100}%`,
+                                y: `${paddingPercent * 100}%`,
+                                w: `${(1 - 2 * paddingPercent) * 100}%`,
+                                h: `${(1 - 2 * paddingPercent) * 100}%`,
+                                sizing: { type: 'contain', w: `${(1 - 2 * paddingPercent) * 100}%`, h: `${(1 - 2 * paddingPercent) * 100}%` }
                             });
-                            console.log('Image added to slide');
                             
                             // Save the PowerPoint file
-                            console.log('Writing file...');
                             pptx.writeFile({ fileName: 'svg-slide.pptx' })
                                 .then(function() {
-                                    console.log('File written successfully');
                                     showStatus('PowerPoint file created successfully!', 'success');
                                 })
                                 .catch(function(error) {
-                                    console.error('Error writing file:', error);
                                     showStatus('Error creating PowerPoint file: ' + error.message, 'error');
                                 });
                         } catch (err) {
-                            console.error('Error adding image to slide:', err);
                             showStatus('Error adding image to slide: ' + err.message, 'error');
                         }
                     };
@@ -421,13 +721,11 @@
                     reader.readAsDataURL(svgBlob);
                     
                 } catch (error) {
-                    console.error('General conversion error:', error);
                     showStatus('Error during conversion: ' + error.message, 'error');
                 }
             });
             
             function showStatus(message, type) {
-                console.log('Status:', message, type);
                 statusMessage.textContent = message;
                 statusMessage.className = 'status ' + type;
                 statusMessage.style.display = 'block';
@@ -440,10 +738,10 @@
                 }
             }
             
-            // Initialize
-            updatePreview();
+            // Initialize preview size on window resize
+            window.addEventListener('resize', updatePreview);
             
-            // Add sample SVG on load
+            // Initialize with default sample SVG
             if (!svgInput.value) {
                 svgInput.value = sampleSVGs.basicShapes;
                 updatePreview();

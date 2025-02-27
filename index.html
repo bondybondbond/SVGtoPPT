@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SVG to PowerPoint Converter</title>
+    <!-- Both CDN sources for better availability -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" integrity="sha512-X9+SPQovcsiOYthV3YFMt7R/Z5UpF4cCHv2tb3pYJS9CnMIRxOGzgZNyKZCdNJTFkfnzBYeN9QiKnZf1OYCXJg==" crossorigin="anonymous"></script>
+    <script>
+        // Fallback script loading if the primary CDN fails
+        window.addEventListener('error', function(e) {
+            if (e.target.src && e.target.src.includes('pptxgenjs')) {
+                console.log('Primary CDN failed, loading from backup...');
+                var script = document.createElement('script');
+                script.src = 'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+                document.head.appendChild(script);
+            }
+        }, true);
+    </script>
     <style>
         :root {
             --primary: #0066cc;
@@ -281,12 +293,50 @@
             color: white;
             border-color: var(--primary);
         }
+        
+        .library-error {
+            background-color: var(--error-bg);
+            color: var(--error);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .loading-indicator {
+            text-align: center;
+            color: var(--primary);
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .download-button {
+            background-color: #4caf50;
+            margin-top: 10px;
+        }
+        
+        .download-button:hover {
+            background-color: #3e8e41;
+        }
     </style>
 </head>
 <body>
     <h1>SVG to PowerPoint Converter</h1>
     
     <div class="container">
+        <div id="library-error" class="library-error" style="display: none;">
+            PowerPoint library couldn't be loaded. Please try:
+            <ol>
+                <li>Refreshing the page</li>
+                <li>Using a different browser</li>
+                <li>Checking your internet connection</li>
+            </ol>
+        </div>
+        
+        <div id="loading-indicator" class="loading-indicator">
+            Loading PowerPoint library... Please wait.
+        </div>
+        
         <div class="tab-container">
             <div class="tab-buttons">
                 <button class="tab-button active" data-tab="input">1. Select SVG</button>
@@ -370,17 +420,18 @@
                     </div>
                 </div>
                 
-                <button id="convertButton" class="convert-button">Convert and Download</button>
+                <button id="convertButton" class="convert-button">Convert to PowerPoint</button>
+                <button id="downloadSvgButton" class="convert-button download-button" style="display: none;">Download as SVG</button>
                 <div id="statusMessage" class="status" style="display: none;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Global flag for library loaded status
-        let pptxLibraryLoaded = true;
-        
         document.addEventListener('DOMContentLoaded', function() {
+            // Show loading indicator
+            document.getElementById('loading-indicator').style.display = 'block';
+            
             // Tab functionality
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -412,9 +463,12 @@
             // Elements
             const svgInput = document.getElementById('svgInput');
             const convertButton = document.getElementById('convertButton');
+            const downloadSvgButton = document.getElementById('downloadSvgButton');
             const statusMessage = document.getElementById('statusMessage');
             const svgPreview = document.getElementById('svgPreview');
             const previewFrame = document.getElementById('preview-frame');
+            const libraryError = document.getElementById('library-error');
+            const loadingIndicator = document.getElementById('loading-indicator');
             
             // Sliders
             const marginSlider = document.getElementById('margin-slider');
@@ -433,6 +487,9 @@
             // Get resolution radio buttons and fit method radio buttons
             const resolutionRadios = document.querySelectorAll('input[name="resolution"]');
             const fitMethodRadios = document.querySelectorAll('input[name="fit-method"]');
+            
+            // Flag for library loaded status
+            let pptxLibraryLoaded = false;
             
             // Current resolution dimensions (default 16:9)
             let currentResolution = {
@@ -541,6 +598,39 @@
             // Update spacing and text scale displays
             spaceValue.textContent = currentSpacing + '%';
             textScaleValue.textContent = currentTextScale + '%';
+            
+            // Check if PptxGenJS is available
+            function checkPptxLibrary() {
+                setTimeout(function() {
+                    if (typeof PptxGenJS !== 'undefined') {
+                        pptxLibraryLoaded = true;
+                        loadingIndicator.style.display = 'none';
+                        libraryError.style.display = 'none';
+                    } else {
+                        // Try to load it from the alternative CDN
+                        const script = document.createElement('script');
+                        script.src = 'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+                        script.onload = function() {
+                            pptxLibraryLoaded = true;
+                            loadingIndicator.style.display = 'none';
+                            libraryError.style.display = 'none';
+                        };
+                        script.onerror = function() {
+                            // Both CDNs failed
+                            pptxLibraryLoaded = false;
+                            loadingIndicator.style.display = 'none';
+                            libraryError.style.display = 'block';
+                            
+                            // Enable SVG download as fallback
+                            downloadSvgButton.style.display = 'block';
+                        };
+                        document.head.appendChild(script);
+                    }
+                }, 1000); // Give the library a second to load
+            }
+            
+            // Initialize PowerPoint library check
+            checkPptxLibrary();
             
             // Setup resolution change handlers
             resolutionRadios.forEach(radio => {
@@ -789,48 +879,29 @@
                 }
             }
             
-            // Convert SVG to PowerPoint
-            convertButton.addEventListener('click', function() {
-                if (!pptxLibraryLoaded) {
-                    showStatus('PowerPoint library is not ready yet. Please wait a moment and try again.', 'warning');
-                    return;
-                }
-                
+            // Function to get the current modified SVG
+            function getModifiedSvg() {
                 const svgCode = svgInput.value.trim();
-                
                 if (!svgCode || !svgCode.startsWith('<svg')) {
                     showStatus('Please enter valid SVG code', 'error');
-                    return;
-                }
-                
-                showStatus('Converting... Please wait', 'warning');
-                
-                // Get selected resolution
-                let selectedLayout = document.querySelector('input[name="resolution"]:checked').value;
-                
-                // Create a new instance of PptxGenJS
-                let pptx;
-                try {
-                    pptx = new PptxGenJS();
-                } catch (e) {
-                    showStatus('Error initializing PowerPoint generator: ' + e.message, 'error');
-                    return;
+                    return null;
                 }
                 
                 try {
-                    // Parse SVG to modify it
-                    const parser = new DOMParser();
+                    // Basic sanitization
                     const sanitizedSVG = svgCode
                         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                         .replace(/on\w+="[^"]*"/g, '')
                         .replace(/on\w+='[^']*'/g, '');
                     
+                    // Parse SVG to modify it
+                    const parser = new DOMParser();
                     const svgDoc = parser.parseFromString(sanitizedSVG, 'image/svg+xml');
                     const svgElement = svgDoc.documentElement;
                     
                     if (!svgElement) {
                         showStatus('Invalid SVG structure detected', 'error');
-                        return;
+                        return null;
                     }
                     
                     // Apply text scaling if different from 100%
@@ -934,20 +1005,70 @@
                     
                     // Serialize back to string
                     const serializer = new XMLSerializer();
-                    const modifiedSVG = serializer.serializeToString(svgElement);
+                    return serializer.serializeToString(svgElement);
+                    
+                } catch (error) {
+                    showStatus('Error processing SVG: ' + error.message, 'error');
+                    return null;
+                }
+            }
+            
+            // Download SVG button handler (fallback when PowerPoint library isn't available)
+            downloadSvgButton.addEventListener('click', function() {
+                const modifiedSvg = getModifiedSvg();
+                if (!modifiedSvg) return;
+                
+                // Create a download link
+                const blob = new Blob([modifiedSvg], {type: 'image/svg+xml'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'modified-svg.svg';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                setTimeout(function() {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+                
+                showStatus('SVG downloaded successfully!', 'success');
+            });
+            
+            // Convert SVG to PowerPoint
+            convertButton.addEventListener('click', function() {
+                if (!pptxLibraryLoaded) {
+                    showStatus('PowerPoint library is not available. You can download the SVG instead.', 'warning');
+                    downloadSvgButton.style.display = 'block';
+                    return;
+                }
+                
+                const modifiedSvg = getModifiedSvg();
+                if (!modifiedSvg) return;
+                
+                showStatus('Converting... Please wait', 'warning');
+                
+                // Get selected resolution
+                let selectedLayout = document.querySelector('input[name="resolution"]:checked').value;
+                
+                try {
+                    // Create a new instance of PptxGenJS
+                    let pptx = new PptxGenJS();
                     
                     // Set slide layout
                     try {
                         pptx.layout = selectedLayout;
                     } catch (e) {
                         // Continue anyway with default layout
+                        console.warn('Could not set layout:', e);
                     }
                     
                     // Add a slide
                     const slide = pptx.addSlide();
                     
                     // Convert SVG to base64
-                    const svgBlob = new Blob([modifiedSVG], {type: 'image/svg+xml'});
+                    const svgBlob = new Blob([modifiedSvg], {type: 'image/svg+xml'});
                     const reader = new FileReader();
                     
                     reader.onload = function(e) {
@@ -989,20 +1110,29 @@
                                 })
                                 .catch(function(error) {
                                     showStatus('Error creating PowerPoint file: ' + error.message, 'error');
+                                    // Show SVG download as fallback
+                                    downloadSvgButton.style.display = 'block';
                                 });
                         } catch (err) {
                             showStatus('Error adding image to slide: ' + err.message, 'error');
+                            // Show SVG download as fallback
+                            downloadSvgButton.style.display = 'block';
                         }
                     };
                     
                     reader.onerror = function() {
                         showStatus('Error reading SVG data', 'error');
+                        // Show SVG download as fallback
+                        downloadSvgButton.style.display = 'block';
                     };
                     
                     reader.readAsDataURL(svgBlob);
                     
                 } catch (error) {
-                    showStatus('Error during conversion: ' + error.message, 'error');
+                    showStatus('PowerPoint generation error: ' + error.message, 'error');
+                    console.error('Detailed error:', error);
+                    // Show SVG download as fallback
+                    downloadSvgButton.style.display = 'block';
                 }
             });
             

@@ -21,6 +21,8 @@
         :root {
             --primary: #0066cc;
             --primary-dark: #0055aa;
+            --secondary: #6c757d;
+            --secondary-light: #a7acb1;
             --light-bg: #f8f8f8;
             --border: #ddd;
             --text: #333;
@@ -166,9 +168,8 @@
             padding: 10px;
             background-color: white;
             border-radius: 4px;
-            overflow: auto;
-            min-height: 150px;
-            max-height: 300px;
+            overflow: hidden;
+            position: relative;
         }
         
         .status {
@@ -260,13 +261,28 @@
             border: 1px dashed #ccc;
             margin: 0 auto;
             position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .convert-button {
             width: 100%;
             padding: 12px;
             font-size: 16px;
-            margin-top: 15px;
+            margin: 15px 0;
+        }
+        
+        .shapes-only-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 10px;
+            background-color: var(--secondary);
+        }
+        
+        .shapes-only-button:hover {
+            background-color: var(--secondary-light);
         }
         
         .fit-options {
@@ -359,30 +375,20 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        
-        .size-input {
-            width: 60px;
-            text-align: center;
-        }
-        
+
         .auto-size-button {
             background-color: #f0f0f0;
             color: var(--text);
             border: 1px solid #ccc;
             border-radius: 4px;
-            padding: 5px 10px;
-            font-size: 12px;
+            padding: 8px 12px;
+            font-size: 14px;
             cursor: pointer;
+            margin-left: 10px;
         }
         
         .auto-size-button:hover {
             background-color: #e0e0e0;
-        }
-        
-        .auto-size-button.active {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
         }
     </style>
 </head>
@@ -467,8 +473,6 @@
                 </div>
                 
                 <div class="font-settings">
-                    <h3 style="margin-top: 0; margin-bottom: 10px;">Font Settings</h3>
-                    
                     <div class="font-row">
                         <div class="font-label">Font Family:</div>
                         <div class="font-controls">
@@ -482,44 +486,21 @@
                                 <option value="Times New Roman">Times New Roman</option>
                                 <option value="Georgia">Georgia</option>
                             </select>
-                            <button id="detect-fonts-button" style="font-size: 12px; padding: 8px;">Detect Fonts</button>
                         </div>
                     </div>
                     
                     <div class="font-row">
-                        <div class="font-label">Title Text:</div>
+                        <div class="font-label">Font Size:</div>
                         <div class="font-controls">
-                            <input type="number" id="title-size" class="size-input" value="24" min="8" max="72">
-                            <span>px</span>
+                            <input type="range" id="font-size-slider" class="slider" min="50" max="200" value="100">
+                            <span id="font-size-value" class="slider-value">100%</span>
+                            <button id="auto-size-button" class="auto-size-button">Auto-Size</button>
                         </div>
                     </div>
-                    
-                    <div class="font-row">
-                        <div class="font-label">Sub Header:</div>
-                        <div class="font-controls">
-                            <input type="number" id="subheader-size" class="size-input" value="18" min="8" max="72">
-                            <span>px</span>
-                        </div>
-                    </div>
-                    
-                    <div class="font-row">
-                        <div class="font-label">Normal Text:</div>
-                        <div class="font-controls">
-                            <input type="number" id="normal-size" class="size-input" value="14" min="8" max="72">
-                            <span>px</span>
-                        </div>
-                    </div>
-                    
-                    <div class="font-row">
-                        <div class="font-label">Footnote:</div>
-                        <div class="font-controls">
-                            <input type="number" id="footnote-size" class="size-input" value="12" min="8" max="72">
-                            <span>px</span>
-                        </div>
-                    </div>
-                    
-                    <button id="auto-size-button" class="convert-button" style="margin-top: 10px; background-color: #f0f0f0; color: #333;">Auto-Size Text</button>
                 </div>
+                
+                <button id="convertButton" class="convert-button">Convert to PowerPoint</button>
+                <button id="shapesOnlyButton" class="shapes-only-button">Convert Shapes to PPT Only</button>
                 
                 <h3>Preview</h3>
                 <div id="preview-container" class="preview-container">
@@ -528,7 +509,6 @@
                     </div>
                 </div>
                 
-                <button id="convertButton" class="convert-button">Convert to PowerPoint</button>
                 <button id="downloadSvgButton" class="convert-button download-button" style="display: none;">Download as SVG</button>
                 <div id="statusMessage" class="status" style="display: none;"></div>
             </div>
@@ -571,20 +551,19 @@
             // Elements
             const svgInput = document.getElementById('svgInput');
             const convertButton = document.getElementById('convertButton');
+            const shapesOnlyButton = document.getElementById('shapesOnlyButton');
             const downloadSvgButton = document.getElementById('downloadSvgButton');
             const statusMessage = document.getElementById('statusMessage');
             const svgPreview = document.getElementById('svgPreview');
             const previewFrame = document.getElementById('preview-frame');
+            const previewContainer = document.getElementById('preview-container');
             const libraryError = document.getElementById('library-error');
             const loadingIndicator = document.getElementById('loading-indicator');
             
             // Font controls
             const fontFamilySelect = document.getElementById('font-family-select');
-            const detectFontsButton = document.getElementById('detect-fonts-button');
-            const titleSizeInput = document.getElementById('title-size');
-            const subheaderSizeInput = document.getElementById('subheader-size');
-            const normalSizeInput = document.getElementById('normal-size');
-            const footnoteSizeInput = document.getElementById('footnote-size');
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const fontSizeValue = document.getElementById('font-size-value');
             const autoSizeButton = document.getElementById('auto-size-button');
             
             // Margin slider
@@ -613,6 +592,7 @@
             // Current settings
             let currentMargin = 0; // Default 0%
             let currentFontFamily = 'Arial'; // Default font family
+            let currentFontSize = 100; // Default 100%
             let currentFitMethod = 'fit'; // Default 'fit'
             
             // Sample SVGs
@@ -707,6 +687,9 @@
             // Update margin display
             marginValue.textContent = currentMargin + '%';
             
+            // Update font size display
+            fontSizeValue.textContent = currentFontSize + '%';
+            
             // Check if PptxGenJS is available
             function checkPptxLibrary() {
                 setTimeout(function() {
@@ -784,34 +767,33 @@
                 updatePreview();
             });
             
-            // Font size inputs
-            titleSizeInput.addEventListener('input', function() {
+            // Update font size handler
+            fontSizeSlider.addEventListener('input', function() {
+                currentFontSize = parseInt(this.value);
+                fontSizeValue.textContent = currentFontSize + '%';
                 updatePreview();
             });
             
-            subheaderSizeInput.addEventListener('input', function() {
-                updatePreview();
+            // Auto-size text
+            autoSizeButton.addEventListener('click', function() {
+                autoSizeText();
             });
             
-            normalSizeInput.addEventListener('input', function() {
-                updatePreview();
-            });
-            
-            footnoteSizeInput.addEventListener('input', function() {
-                updatePreview();
-            });
-            
-            // Detect fonts from SVG
-            detectFontsButton.addEventListener('click', function() {
+            function autoSizeText() {
                 const svgCode = svgInput.value.trim();
                 if (!svgCode || !svgCode.startsWith('<svg')) {
                     showStatus('Please enter valid SVG code first', 'warning');
                     return;
                 }
                 
+                // Set font size slider to 100% (default)
+                fontSizeSlider.value = 100;
+                currentFontSize = 100;
+                fontSizeValue.textContent = '100%';
+                
+                // Try to detect and set font family
                 const detectedFonts = detectFontsFromSvg(svgCode);
                 if (detectedFonts.length > 0) {
-                    // Update font select box
                     const primaryFont = detectedFonts[0];
                     
                     // Check if font exists in the dropdown
@@ -834,96 +816,9 @@
                     }
                     
                     currentFontFamily = primaryFont;
-                    showStatus(`Detected font: ${primaryFont}`, 'success');
-                    
-                    // Try auto-sizing as well
-                    autoSizeText();
-                } else {
-                    showStatus('No fonts detected in the SVG', 'warning');
-                }
-            });
-            
-            // Auto-size text
-            autoSizeButton.addEventListener('click', function() {
-                autoSizeText();
-            });
-            
-            function autoSizeText() {
-                const svgCode = svgInput.value.trim();
-                if (!svgCode || !svgCode.startsWith('<svg')) {
-                    showStatus('Please enter valid SVG code first', 'warning');
-                    return;
                 }
                 
-                // Parse the SVG to find text elements
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(svgCode, 'image/svg+xml');
-                const textElements = svgDoc.querySelectorAll('text');
-                
-                if (textElements.length === 0) {
-                    showStatus('No text elements found in SVG', 'warning');
-                    return;
-                }
-                
-                // Collect all font sizes
-                const fontSizes = [];
-                textElements.forEach(text => {
-                    const fontSize = text.getAttribute('font-size');
-                    if (fontSize) {
-                        // Extract numeric part
-                        const size = parseFloat(fontSize);
-                        if (!isNaN(size)) {
-                            fontSizes.push({ 
-                                size: size,
-                                y: parseFloat(text.getAttribute('y') || 0),
-                                text: text.textContent
-                            });
-                        }
-                    }
-                });
-                
-                if (fontSizes.length === 0) {
-                    showStatus('Could not determine font sizes in SVG', 'warning');
-                    return;
-                }
-                
-                // Sort by size (descending)
-                fontSizes.sort((a, b) => b.size - a.size);
-                
-                // Find title (usually largest font and often near the top)
-                let titleSize = fontSizes[0].size;
-                
-                // Try to identify a title by position and size
-                const viewBox = svgDoc.documentElement.getAttribute('viewBox');
-                let svgHeight = 600; // Default if not specified
-                
-                if (viewBox) {
-                    const parts = viewBox.split(' ');
-                    if (parts.length >= 4) {
-                        svgHeight = parseFloat(parts[3]);
-                    }
-                }
-                
-                // Title is usually in the top 15% of the SVG and is one of the largest fonts
-                const topElements = fontSizes.filter(item => item.y < svgHeight * 0.15);
-                if (topElements.length > 0) {
-                    topElements.sort((a, b) => b.size - a.size);
-                    titleSize = topElements[0].size;
-                }
-                
-                // Calculate other sizes based on typical ratios
-                // Title:Subheader:Normal:Footnote ratios are roughly 2:1.5:1:0.85
-                const normalTextSize = Math.round(fontSizes[Math.floor(fontSizes.length / 2)].size);
-                const subheaderSize = Math.round(normalTextSize * 1.5);
-                const footnoteSize = Math.round(normalTextSize * 0.85);
-                
-                // Update the inputs
-                titleSizeInput.value = Math.max(Math.min(Math.round(titleSize), 72), 8);
-                subheaderSizeInput.value = Math.max(Math.min(subheaderSize, 72), 8);
-                normalSizeInput.value = Math.max(Math.min(normalTextSize, 72), 8);
-                footnoteSizeInput.value = Math.max(Math.min(footnoteSize, 72), 8);
-                
-                showStatus('Text sizes auto-detected', 'success');
+                showStatus('Font settings reset to auto-detected values', 'success');
                 updatePreview();
             }
             
@@ -975,13 +870,14 @@
                 const svgCode = svgInput.value.trim();
                 
                 // Calculate preview dimensions to maintain aspect ratio
-                const previewWidth = document.getElementById('preview-container').clientWidth - 20; // Accounting for padding
+                const previewContainerWidth = previewContainer.clientWidth - 20; // Accounting for padding
                 const aspectRatio = currentResolution.height / currentResolution.width;
-                const previewHeight = previewWidth * aspectRatio;
+                const previewHeight = previewContainerWidth * aspectRatio;
                 
                 // Set the preview frame dimensions
-                previewFrame.style.width = previewWidth + 'px';
+                previewFrame.style.width = previewContainerWidth + 'px';
                 previewFrame.style.height = previewHeight + 'px';
+                previewFrame.style.overflow = 'hidden'; // Ensure no scrollbars
                 
                 if (svgCode && svgCode.startsWith('<svg')) {
                     try {
@@ -1003,45 +899,23 @@
                                 text.setAttribute('font-family', currentFontFamily);
                             });
                             
-                            // Apply font sizes based on categories
-                            const titleSize = parseInt(titleSizeInput.value);
-                            const subheaderSize = parseInt(subheaderSizeInput.value);
-                            const normalSize = parseInt(normalSizeInput.value);
-                            const footnoteSize = parseInt(footnoteSizeInput.value);
-                            
-                            // Get SVG dimensions for text categorization
-                            const viewBox = svgElement.getAttribute('viewBox');
-                            let svgHeight = 600; // Default if not specified
-                            
-                            if (viewBox) {
-                                const parts = viewBox.split(' ');
-                                if (parts.length >= 4) {
-                                    svgHeight = parseFloat(parts[3]);
-                                }
-                            }
-                            
-                            // Apply text sizes based on position and attributes
-                            textElements.forEach(text => {
-                                const y = parseFloat(text.getAttribute('y') || 0);
-                                const fontWeight = text.getAttribute('font-weight');
-                                const textContent = text.textContent.trim();
-                                const textLength = textContent.length;
+                            // Apply font size scaling to all text elements
+                            if (currentFontSize !== 100) {
+                                const scaleFactor = currentFontSize / 100;
                                 
-                                // Categorize by position, attributes, and length
-                                if (y < svgHeight * 0.15 && (fontWeight === 'bold' || textLength < 50)) {
-                                    // Likely a title
-                                    text.setAttribute('font-size', titleSize);
-                                } else if ((fontWeight === 'bold' || textContent.toUpperCase() === textContent) && textLength < 80) {
-                                    // Likely a subheader
-                                    text.setAttribute('font-size', subheaderSize);
-                                } else if (textLength < 15 && y > svgHeight * 0.85) {
-                                    // Likely a footnote or page number
-                                    text.setAttribute('font-size', footnoteSize);
-                                } else {
-                                    // Normal text
-                                    text.setAttribute('font-size', normalSize);
-                                }
-                            });
+                                textElements.forEach(text => {
+                                    const currentSize = text.getAttribute('font-size');
+                                    if (currentSize) {
+                                        // Extract numeric part
+                                        const sizeValue = parseFloat(currentSize);
+                                        const unit = currentSize.replace(/[\d.-]/g, '') || '';
+                                        
+                                        // Apply the scale factor
+                                        const newSize = (sizeValue * scaleFactor).toFixed(1) + unit;
+                                        text.setAttribute('font-size', newSize);
+                                    }
+                                });
+                            }
                             
                             // Serialize back to string
                             const serializer = new XMLSerializer();
@@ -1054,13 +928,13 @@
                             if (svg) {
                                 // Calculate margined dimensions
                                 const marginFactor = currentMargin / 100;
-                                const marginedWidth = previewWidth * (1 - 2 * marginFactor);
+                                const marginedWidth = previewContainerWidth * (1 - 2 * marginFactor);
                                 const marginedHeight = previewHeight * (1 - 2 * marginFactor);
                                 
                                 // Center SVG and apply margin
                                 svg.style.position = 'absolute';
                                 svg.style.top = (previewHeight * marginFactor) + 'px';
-                                svg.style.left = (previewWidth * marginFactor) + 'px';
+                                svg.style.left = (previewContainerWidth * marginFactor) + 'px';
                                 svg.style.width = marginedWidth + 'px';
                                 svg.style.height = marginedHeight + 'px';
                                 
@@ -1090,7 +964,7 @@
             }
             
             // Function to get the current modified SVG
-            function getModifiedSvg() {
+            function getModifiedSvg(shapesOnly = false) {
                 const svgCode = svgInput.value.trim();
                 if (!svgCode || !svgCode.startsWith('<svg')) {
                     showStatus('Please enter valid SVG code', 'error');
@@ -1114,51 +988,37 @@
                         return null;
                     }
                     
-                    // Apply font family to all text elements
-                    const textElements = svgElement.querySelectorAll('text');
-                    textElements.forEach(text => {
-                        text.setAttribute('font-family', currentFontFamily);
-                    });
-                    
-                    // Apply font sizes based on categories
-                    const titleSize = parseInt(titleSizeInput.value);
-                    const subheaderSize = parseInt(subheaderSizeInput.value);
-                    const normalSize = parseInt(normalSizeInput.value);
-                    const footnoteSize = parseInt(footnoteSizeInput.value);
-                    
-                    // Get SVG dimensions for text categorization
-                    const viewBox = svgElement.getAttribute('viewBox');
-                    let svgHeight = 600; // Default if not specified
-                    
-                    if (viewBox) {
-                        const parts = viewBox.split(' ');
-                        if (parts.length >= 4) {
-                            svgHeight = parseFloat(parts[3]);
+                    // If shapes only, remove all text elements
+                    if (shapesOnly) {
+                        const textElements = svgElement.querySelectorAll('text');
+                        textElements.forEach(text => {
+                            text.parentNode.removeChild(text);
+                        });
+                    } else {
+                        // Apply font family to all text elements
+                        const textElements = svgElement.querySelectorAll('text');
+                        textElements.forEach(text => {
+                            text.setAttribute('font-family', currentFontFamily);
+                        });
+                        
+                        // Apply font size scaling to all text elements
+                        if (currentFontSize !== 100) {
+                            const scaleFactor = currentFontSize / 100;
+                            
+                            textElements.forEach(text => {
+                                const currentSize = text.getAttribute('font-size');
+                                if (currentSize) {
+                                    // Extract numeric part
+                                    const sizeValue = parseFloat(currentSize);
+                                    const unit = currentSize.replace(/[\d.-]/g, '') || '';
+                                    
+                                    // Apply the scale factor
+                                    const newSize = (sizeValue * scaleFactor).toFixed(1) + unit;
+                                    text.setAttribute('font-size', newSize);
+                                }
+                            });
                         }
                     }
-                    
-                    // Apply text sizes based on position and attributes
-                    textElements.forEach(text => {
-                        const y = parseFloat(text.getAttribute('y') || 0);
-                        const fontWeight = text.getAttribute('font-weight');
-                        const textContent = text.textContent.trim();
-                        const textLength = textContent.length;
-                        
-                        // Categorize by position, attributes, and length
-                        if (y < svgHeight * 0.15 && (fontWeight === 'bold' || textLength < 50)) {
-                            // Likely a title
-                            text.setAttribute('font-size', titleSize);
-                        } else if ((fontWeight === 'bold' || textContent.toUpperCase() === textContent) && textLength < 80) {
-                            // Likely a subheader
-                            text.setAttribute('font-size', subheaderSize);
-                        } else if (textLength < 15 && y > svgHeight * 0.85) {
-                            // Likely a footnote or page number
-                            text.setAttribute('font-size', footnoteSize);
-                        } else {
-                            // Normal text
-                            text.setAttribute('font-size', normalSize);
-                        }
-                    });
                     
                     // Serialize back to string
                     const serializer = new XMLSerializer();
@@ -1193,18 +1053,28 @@
                 showStatus('SVG downloaded successfully!', 'success');
             });
             
-            // Convert SVG to PowerPoint
+            // Convert SVG to PowerPoint - regular version
             convertButton.addEventListener('click', function() {
+                convertToPowerPoint(false);
+            });
+            
+            // Convert SVG to PowerPoint - shapes only version
+            shapesOnlyButton.addEventListener('click', function() {
+                convertToPowerPoint(true);
+            });
+            
+            // Function to convert SVG to PowerPoint
+            function convertToPowerPoint(shapesOnly) {
                 if (!pptxLibraryLoaded) {
                     showStatus('PowerPoint library is not available. You can download the SVG instead.', 'warning');
                     downloadSvgButton.style.display = 'block';
                     return;
                 }
                 
-                const modifiedSvg = getModifiedSvg();
+                const modifiedSvg = getModifiedSvg(shapesOnly);
                 if (!modifiedSvg) return;
                 
-                showStatus('Converting... Please wait', 'warning');
+                showStatus(`Converting... ${shapesOnly ? '(shapes only)' : ''} Please wait`, 'warning');
                 
                 // Get selected resolution
                 let selectedLayout = document.querySelector('input[name="resolution"]:checked').value;
@@ -1260,10 +1130,13 @@
                                 sizing: sizing
                             });
                             
+                            // Generate a suitable filename
+                            const fileName = shapesOnly ? 'svg-shapes-only.pptx' : 'svg-slide.pptx';
+                            
                             // Save the PowerPoint file
-                            pptx.writeFile({ fileName: 'svg-slide.pptx' })
+                            pptx.writeFile({ fileName: fileName })
                                 .then(function() {
-                                    showStatus('PowerPoint file created successfully!', 'success');
+                                    showStatus(`PowerPoint file created successfully! ${shapesOnly ? '(shapes only)' : ''}`, 'success');
                                 })
                                 .catch(function(error) {
                                     showStatus('Error creating PowerPoint file: ' + error.message, 'error');
@@ -1291,7 +1164,7 @@
                     // Show SVG download as fallback
                     downloadSvgButton.style.display = 'block';
                 }
-            });
+            }
             
             function showStatus(message, type) {
                 statusMessage.textContent = message;
